@@ -3,6 +3,9 @@ import sys
 import os.path
 import glob
 
+# This python file is adapted from https://github.com/nagadomi/lbpcascade_animeface with some modification
+# The xml file lbpcascade_animeface.xml is also got from that repository.
+
 path = glob.glob("./tagged-anime-illustrations/moeimouto-faces/000_hatsune_miku/*.png")
 path.sort()
 
@@ -23,7 +26,7 @@ def detect(filename, cascade_file = "./lbpcascade_animeface.xml"):
 
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.equalizeHist(gray)
-    
+
     faces = cascade.detectMultiScale(gray,
                                      # detector options
                                      scaleFactor = 1.1,
@@ -48,7 +51,7 @@ def detect(filename, cascade_file = "./lbpcascade_animeface.xml"):
 # if len(sys.argv) != 2:
 #     sys.stderr.write("usage: detect.py <filename>\n")
 #     sys.exit(-1)
-    
+
 # detect(sys.argv[1])
 
 
