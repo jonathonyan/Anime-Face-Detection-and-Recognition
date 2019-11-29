@@ -3,7 +3,7 @@ from os import listdir
 from os.path import isfile, join, isdir
 import numpy as np
 import pdb
-
+import matplotlib.pyplot as plt
 
 POSITIVE_DATASET_PATH="./datasets/detection/positive"
 NEGATIVE_DATASET_PATH="./datasets/detection/negative"
@@ -12,9 +12,9 @@ IMAGE_FILE_TYPE = (".jpg", ".png")
 
 class DetectionDataset:
     def __init__(self, hog_converter=None, limit=None):
-        self.images = []
-        self.hogs = []
-        self.labels = []
+        self.images = {0: [], 1:[]}
+        self.hogs = {0: [], 1:[]}
+        self.labels = {0: [], 1:[]}
         self._limit = limit
 
         self.hog_converter = hog_converter
@@ -25,9 +25,9 @@ class DetectionDataset:
 
     def init_detection_dataset(self):
         self.datasize = 0
-        self.images = []
-        self.hogs = []
-        self.labels = []
+        self.images = {0: [], 1:[]}
+        self.hogs = {0: [], 1:[]}
+        self.labels = {0: [], 1:[]}
         self._get_detection_dataset(POSITIVE_DATASET_PATH, label=1)
         self._get_detection_dataset(NEGATIVE_DATASET_PATH, label=0)
 
@@ -51,16 +51,16 @@ class DetectionDataset:
         if not (img_path.lower().endswith(IMAGE_FILE_TYPE)):
             return
 
-        # print(img_path)
         try:
             img = cv2.imread(img_path)
-            img = cv2.resize(img, (64, 128), interpolation=cv2.INTER_AREA)
-            self.images.append(img)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA)
+            self.images[label].append(img)
             hist = self.hog_converter.compute(img, (8, 8))
-            self.hogs.append(hist.reshape(-1, 15876)[0])
-            self.labels.append(label)
+            self.hogs[label].append(hist.reshape(-1, 15876)[0])
+            self.labels[label].append(label)
             self.datasize += 1
-        except:
+        except Exception:
             print("corrupted image detected")
 
     def _limit_reached(self):
@@ -70,4 +70,3 @@ class DetectionDataset:
 if __name__ == "__main__":
     hog_converter = cv2.HOGDescriptor((64, 64), (16, 16), (8, 8), (8, 8), 9)
     detection_dataset = DetectionDataset(hog_converter)
-    print(detection_dataset.datasize)
