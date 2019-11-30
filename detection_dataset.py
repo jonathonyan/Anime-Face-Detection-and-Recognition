@@ -4,18 +4,19 @@ from os.path import isfile, join, isdir
 import numpy as np
 import pdb
 import matplotlib.pyplot as plt
+from bounding_box import *
 
-POSITIVE_DATASET_PATH="./datasets/detection/positive"
-NEGATIVE_DATASET_PATH="./datasets/detection/negative"
+POSITIVE_DATASET_PATH="./datasets/detection/positive_all"
+NEGATIVE_DATASET_PATH="./datasets/detection/negative_all"
 IMAGE_FILE_TYPE = (".jpg", ".png")
 
 
 class DetectionDataset:
-    def __init__(self, hog_converter=None, limit=None):
+    def __init__(self, hog_converter=None, pos_limit=None, neg_limit=None):
         self.images = {0: [], 1:[]}
         self.hogs = {0: [], 1:[]}
         self.labels = {0: [], 1:[]}
-        self._limit = limit
+        self._limit = {0: neg_limit, 1: pos_limit}
 
         self.hog_converter = hog_converter
 
@@ -24,7 +25,7 @@ class DetectionDataset:
 
 
     def init_detection_dataset(self):
-        self.datasize = 0
+        self.datasize = {0: 0, 1: 0}
         self.images = {0: [], 1:[]}
         self.hogs = {0: [], 1:[]}
         self.labels = {0: [], 1:[]}
@@ -37,7 +38,7 @@ class DetectionDataset:
         file_list = listdir(img_path)
 
         for path_each in file_list:
-            if self._limit_reached():
+            if self._limit_reached(label):
                 break
 
             path_curr = join(img_path, path_each)
@@ -53,18 +54,26 @@ class DetectionDataset:
 
         try:
             img = cv2.imread(img_path)
-            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-            img = cv2.resize(img, (128, 128), interpolation=cv2.INTER_AREA)
+            #img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            img = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+            img = image_resize(img)
             self.images[label].append(img)
             hist = self.hog_converter.compute(img, (8, 8))
-            self.hogs[label].append(hist.reshape(-1, 15876)[0])
+            print(hist.shape)
+            self.hogs[label].append(hist.reshape(-1, hist.shape[0])[0]) # 15876 hist.shape[0]
             self.labels[label].append(label)
-            self.datasize += 1
+            self.datasize[label] += 1
+            print(self.datasize)
+            if (self.datasize[label] < 100):
+                print(img_path)
         except Exception:
             print("corrupted image detected")
 
-    def _limit_reached(self):
-        return type(self._limit) != type(None) and self.datasize >= self._limit
+    def _limit_reached(self, label):
+        return type(self._limit[label]) != type(None) and self.datasize[label] >= self._limit[label]
+
+def image_resize(img):
+    return cv2.resize(img, (64, 128), interpolation=cv2.INTER_AREA)
 
 
 if __name__ == "__main__":
