@@ -19,6 +19,11 @@ import argparse
 from torch import optim
 import matplotlib.pyplot as plt
 import json
+import pdb
+from matplotlib import cm
+
+
+TEST_ONLY = True
 
 
 train_transforms = transforms.Compose([transforms.Resize((224, 224)),
@@ -220,8 +225,8 @@ def get_input_args_predict():
     parser.add_argument('--category_names', help='the index of the labels to classes', default='cat_to_name.json')
     parser.add_argument('--device', help='CPU OR CUDA', default='cuda')
     parser.add_argument('--arch', help='the architechture of the network', default='vgg')
-    parser.add_argument('--save_dir', help='path to the training checkpoint', default='./save/weights_vgg16')
-    parser.add_argument('--dirpic', help='path to the picture to test', default='./datasets/recognition/test/008_shana/face_815_257_11.png')
+    parser.add_argument('--save_dir', help='path to the training checkpoint', default='./weights/weights_vgg16')
+    parser.add_argument('--dirpic', help='path to the picture to test', default='./datasets/recognition/t1.png')
     return parser.parse_args()
 
 
@@ -286,6 +291,16 @@ def network_saving(model):
 def process_image(image):
 
     pic = Image.open(image)
+
+    return process_pic(pic)
+
+def process_window(window):
+    pic = Image.fromarray(window)
+
+    return process_pic(pic)
+
+
+def process_pic(pic):
     pic = pic.resize((224, 224))
     # if pic.size[0] < pic.size[1]:
     #     ratio = float(256) / float(pic.size[0])
@@ -337,8 +352,17 @@ def predict(image_path, model, topk=3):
     if torch.cuda.is_available():
         model = model.cuda()
     img = process_image(image_path)
+    return predict_pic(img, model, topk)
+
+
+def predict_pic(img, model, topk=3, need_cuda = False):
     img = img.unsqueeze(0)
     img = img.cuda()
+
+    if need_cuda:
+        model = model.to("cuda")
+
+
     result = model(img).topk(topk)
     probs = []
     classes = []
@@ -429,8 +453,21 @@ def test(net):
 
 
 if __name__ == '__main__':
+
+
+
     torch.backends.cudnn.benchmark = True
     torch.cuda.empty_cache()
+
+
+    if TEST_ONLY:
+        vgg16 = models.vgg16(pretrained=True)
+        vgg16.cuda()
+        test(vgg16)
+        exit(0)
+
+
+
 
     train_path = "./datasets/recognition/train"
     test_path = "./datasets/recognition/test"
