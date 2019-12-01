@@ -126,10 +126,10 @@ class BoundingBoxes:
 
 
 def run_detect():
-    img = cv2.imread("./datasets/detection/detect_06.jpg")
+    img = cv2.imread("./datasets/detection/detect_05.jpg")
 
-    # 1,1,1,0.7, 0.3, 0.5
-    scale = 0.5
+    # 1,0.6,1,0.4, 0.3, 0.2,0.5
+    scale = 0.2
 
     img = cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale) ))
 
@@ -147,7 +147,7 @@ def run_detect():
 
 
 
-    bounding_boxes = BoundingBoxes(img_hsv, hog_converter, svc, 80, 80, 128, 128, 16, 4)
+    bounding_boxes = BoundingBoxes(img_hsv, hog_converter, svc, 80, 80, 128, 128, 16, 4) #80-128, 100-140
 
     bounding_boxes.sliding_window()
 
@@ -158,7 +158,7 @@ def run_detect():
 
     img_out = bounding_boxes.draw_boxes(img_out)
 
-    cv2.imwrite("./datasets/detection/out_06.jpg", img_out)
+    cv2.imwrite("./datasets/detection/out_05.jpg", img_out)
 
 if __name__=="__main__":
     run_detect()
