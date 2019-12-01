@@ -4,6 +4,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.model_selection import train_test_split
 from detection_dataset import *
 import pickle
+from vgg16 import *
 
 POSITIVE_DATASET_PATH_TEST="./datasets/detection/positive_test"
 NEGATIVE_DATASET_PATH_TEST="./datasets/detection/negative_test"

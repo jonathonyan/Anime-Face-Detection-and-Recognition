@@ -2,12 +2,18 @@ from detection_dataset import *
 from svm import *
 from shapely.geometry import Polygon
 
+CATEGORY_NAMES_PATH = 'cat_to_name.json'
+
+with open(CATEGORY_NAMES_PATH, 'r') as f:
+    cat_to_name = json.load(f)
 
 class BoundingBoxes:
 
-    def __init__(self, image, hog_converter, svc, window_height_min=20, window_width_min=20, window_height_max=20,
+    def __init__(self, image, image_original, scale, hog_converter, svc, window_height_min=20, window_width_min=20, window_height_max=20,
                     window_width_max=20, size_stride=1, sliding_stride=1, mode="square"):
         self.image = image
+        self.image_original = image_original
+        self.scale = scale
         self.hog_converter = hog_converter
         self.svc = svc
         self.all_bounding_boxes = []
@@ -116,30 +122,101 @@ class BoundingBoxes:
 
 
 
-    def draw_boxes(self, img_out):
+    def draw_boxes(self, img_out, enlarge=2):
 
         for idx in self.satisfied_bounding_boxes_indices:
             x, y, w, h = self.all_bounding_boxes[idx]
+
+            r_x, r_y = w/2, h/2
+            c_x, c_y = x + r_x, y + r_y
+
+            r_x, r_y = r_x * enlarge, r_y * enlarge
+
+            x, y = int(c_x - r_x), int(c_y - r_y)
+
+            w = int(enlarge * w)
+            h = int(enlarge * h)
+
+
+
             cv2.rectangle(img_out, (x, y), (x + w, y + h), (0, 0, 255), 2)
         return img_out
 
 
+    def recognition(self, model, img_out, enlarge=2):
+        print("recognize")
+        for idx in self.satisfied_bounding_boxes_indices:
+            x, y, w, h = self.all_bounding_boxes[idx]
 
-def run_detect():
-    img = cv2.imread("./datasets/detection/detect_05.jpg")
+
+            r_x, r_y = w/2, h/2
+            c_x, c_y = x + r_x, y + r_y
+
+            r_x, r_y = r_x * enlarge, r_y * enlarge
+
+            x, y = int(c_x - r_x), int(c_y - r_y)
+
+            w = int(enlarge * w)
+            h = int(enlarge * h)
+
+            print(self.image_original.shape)
+
+            print("({}, {}, {}, {})".format(x,y,w,h))
+
+            window = self.image_original[y: y+h+1, x: x+w+1]
+            pic = process_window(window)
+            predict = predict_pic(pic, model, 10, True)
+            probs = predict[0]
+            classes = predict[1]
+            print("classes = ", classes)
+
+            names = []
+            for i in classes:
+                names.append(cat_to_name[i])
+
+            print("==================================================================")
+            print('the top possible characters are :')
+            for i in range(len(names)):
+                print(names[i], '( Possibility =', probs[i], ")")
+
+            text = "{} {}".format(names[0], round(probs[0], 3))
+
+            cv2.putText(img_out, text, (x, y+h), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), lineType=cv2.LINE_AA)
+
+
+
+
+def pre_process_image(img, scale):
+    img_resized =  cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale) ))
+
+    img_out = np.copy(img_resized)
+
+    img_resized = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
+
+    img_hsv = cv2.cvtColor(img_resized, cv2.COLOR_RGB2HSV)
+
+
+    return img_hsv, img_out
+
+
+
+def run_detect_test():
+    img = cv2.imread("./datasets/detection/detect_07.jpg")
 
     # 1,0.6,1,0.4, 0.3, 0.2,0.5
-    scale = 0.2
+    # scale = 0.5
 
-    img = cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale) ))
+    # img = cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale) ))
 
-    img_out = np.copy(img)
+    # img_out = np.copy(img)
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+    # img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
 
 
-    img_hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    # img_hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    img_hsv, img_out = pre_process_image(img, 0.5)
+
     hog_converter = cv2.HOGDescriptor((64, 64), (16, 16), (8, 8), (8, 8), 9)
 
     svc = pickle.load(open("./detect_svm_good.pkl", 'rb'))
@@ -147,7 +224,7 @@ def run_detect():
 
 
 
-    bounding_boxes = BoundingBoxes(img_hsv, hog_converter, svc, 80, 80, 128, 128, 16, 4) #80-128, 100-140
+    bounding_boxes = BoundingBoxes(img_hsv, img_out, 0.5, hog_converter, svc, 80, 80, 128, 128, 16, 4) #80-128, 100-140
 
     bounding_boxes.sliding_window()
 
@@ -158,10 +235,10 @@ def run_detect():
 
     img_out = bounding_boxes.draw_boxes(img_out)
 
-    cv2.imwrite("./datasets/detection/out_05.jpg", img_out)
+    cv2.imwrite("./datasets/detection/out_07.jpg", img_out)
 
 if __name__=="__main__":
-    run_detect()
+    run_detect_test()
 
 
 
