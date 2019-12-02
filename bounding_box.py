@@ -85,8 +85,11 @@ class BoundingBoxes:
             self.results.extend(results_batch)
         self.results = np.array(self.results)
         origin_satisfied_bounding_boxes_indices = np.where(self.results == 1)[0]
-        current_satisfied_bounding_boxes_indices = np.copy(origin_satisfied_bounding_boxes_indices)
+        self.satisfied_bounding_boxes_indices = np.copy(origin_satisfied_bounding_boxes_indices)
 
+    def filter(self):
+        origin_satisfied_bounding_boxes_indices = np.copy(self.satisfied_bounding_boxes_indices)
+        current_satisfied_bounding_boxes_indices = np.copy(self.satisfied_bounding_boxes_indices)
         for idx in origin_satisfied_bounding_boxes_indices:
             overlap = False
             x1, y1, w1, h1 = self.all_bounding_boxes[idx]
@@ -217,6 +220,8 @@ def run_detect_test():
     # img_in = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     img_in, img_out = pre_process_image(img, 0.5)
 
+    img_out_2 = np.copy(img_out)
+
     hog_converter = cv2.HOGDescriptor((64, 64), (16, 16), (8, 8), (8, 8), 9)
 
     svc = pickle.load(open("./detect_svm_good.pkl", 'rb'))
@@ -235,7 +240,13 @@ def run_detect_test():
 
     img_out = bounding_boxes.draw_boxes(img_out, 1)
 
-    cv2.imwrite("./datasets/detection/out_07.jpg", img_out)
+    cv2.imwrite("./datasets/detection/out_07_1.jpg", img_out)
+
+    bounding_boxes.filter()
+
+    img_out = bounding_boxes.draw_boxes(img_out_2, 1)
+
+    cv2.imwrite("./datasets/detection/out_07_1_filtered.jpg", img_out)
 
 if __name__=="__main__":
     run_detect_test()

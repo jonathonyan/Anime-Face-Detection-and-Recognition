@@ -20,6 +20,8 @@ def detect_and_recognize(img, out_path, scale=0.5):
 
     bounding_boxes.detect()
 
+    bounding_boxes.filter()
+
     img_out = bounding_boxes.draw_boxes(img_out)
 
 
