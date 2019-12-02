@@ -233,7 +233,7 @@ def run_detect_test():
 
 
 
-    img_out = bounding_boxes.draw_boxes(img_out)
+    img_out = bounding_boxes.draw_boxes(img_out, 1)
 
     cv2.imwrite("./datasets/detection/out_07.jpg", img_out)
 
