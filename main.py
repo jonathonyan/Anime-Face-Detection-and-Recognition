@@ -4,14 +4,14 @@ from vgg16 import *
 
 
 def detect_and_recognize(img, out_path, scale=0.5):
-    img_hsv, img_out = pre_process_image(img, scale)
+    img_in, img_out = pre_process_image(img, scale)
 
 
     hog_converter = cv2.HOGDescriptor((64, 64), (16, 16), (8, 8), (8, 8), 9)
 
     svc = pickle.load(open("./detect_svm_good.pkl", 'rb'))
 
-    bounding_boxes = BoundingBoxes(img_hsv, img_out, scale, hog_converter, svc, 80, 80, 128, 128, 16, 4)
+    bounding_boxes = BoundingBoxes(img_in, img_out, scale, hog_converter, svc, 80, 80, 128, 128, 16, 4)
 
 
     bounding_boxes.sliding_window()

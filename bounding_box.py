@@ -193,10 +193,10 @@ def pre_process_image(img, scale):
 
     img_resized = cv2.cvtColor(img_resized, cv2.COLOR_BGR2RGB)
 
-    img_hsv = cv2.cvtColor(img_resized, cv2.COLOR_RGB2HSV)
+    img_in = cv2.cvtColor(img_resized, cv2.COLOR_RGB2HSV)
 
 
-    return img_hsv, img_out
+    return img_in, img_out
 
 
 
@@ -214,8 +214,8 @@ def run_detect_test():
 
 
 
-    # img_hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
-    img_hsv, img_out = pre_process_image(img, 0.5)
+    # img_in = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
+    img_in, img_out = pre_process_image(img, 0.5)
 
     hog_converter = cv2.HOGDescriptor((64, 64), (16, 16), (8, 8), (8, 8), 9)
 
@@ -224,7 +224,7 @@ def run_detect_test():
 
 
 
-    bounding_boxes = BoundingBoxes(img_hsv, img_out, 0.5, hog_converter, svc, 80, 80, 128, 128, 16, 4) #80-128, 100-140
+    bounding_boxes = BoundingBoxes(img_in, img_out, 0.5, hog_converter, svc, 80, 80, 128, 128, 16, 4) #80-128, 100-140
 
     bounding_boxes.sliding_window()
 
