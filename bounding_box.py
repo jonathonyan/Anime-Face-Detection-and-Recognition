@@ -185,12 +185,13 @@ class BoundingBoxes:
             text = "{} {}".format(names[0], round(probs[0], 3))
 
             cv2.putText(img_out, text, (x, y+h), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 0), lineType=cv2.LINE_AA)
+        return img_out
 
 
 
 
 def pre_process_image(img, scale):
-    img_resized =  cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale) ))
+    img_resized =  cv2.resize(img, (int(img.shape[1] * scale), int(img.shape[0] * scale)))
 
     img_out = np.copy(img_resized)
 
