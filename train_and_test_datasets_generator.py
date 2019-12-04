@@ -1,10 +1,8 @@
 import cv2
-import sys
 import os.path
 
 
 def read_data(input_path):
-
     folders = []
     images = {}
 
@@ -81,7 +79,6 @@ def mkdir(path):
 
 
 if __name__ == '__main__':
-
     input_path = "./tagged-anime-illustrations/moeimouto-faces"
     folders, images = read_data(input_path)
     print("num of folders = ", len(images))

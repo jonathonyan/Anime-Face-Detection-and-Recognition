@@ -22,25 +22,29 @@ import json
 import pdb
 from matplotlib import cm
 
-
 TEST_ONLY = True
 
-
-train_transforms = transforms.Compose([transforms.Resize((224, 224)),
+train_transforms = transforms.Compose([transforms.RandomRotation(30),
+                                       transforms.RandomResizedCrop(224),
+                                       transforms.RandomHorizontalFlip(),
+                                       # transforms.Resize((224, 224)),
                                        transforms.ToTensor(),
-                                       transforms.Normalize((0.485,0.456,0.406),(0.229,0.224,0.225))])
+                                       transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
 test_transforms = transforms.Compose([transforms.Resize((224, 224)),
                                       transforms.ToTensor(),
-                                      transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])])
+                                      transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
-train_transforms_le = transforms.Compose([transforms.Resize((32, 32)),
-                                       transforms.ToTensor(),
-                                       transforms.Normalize((0.485,0.456,0.406),(0.229,0.224,0.225))])
+train_transforms_le = transforms.Compose([transforms.RandomRotation(30),
+                                          transforms.RandomResizedCrop(224),
+                                          transforms.RandomHorizontalFlip(),
+                                          # transforms.Resize((32, 32)),
+                                          transforms.ToTensor(),
+                                          transforms.Normalize((0.485, 0.456, 0.406), (0.229, 0.224, 0.225))])
 
 test_transforms_le = transforms.Compose([transforms.Resize((32, 32)),
-                                      transforms.ToTensor(),
-                                      transforms.Normalize([0.485,0.456,0.406],[0.229,0.224,0.225])])
+                                         transforms.ToTensor(),
+                                         transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])])
 
 simple_transform = transforms.Compose([transforms.ToTensor()])
 
@@ -84,8 +88,46 @@ class LeNet(nn.Module):
         return x
 
 
+class AlexNet(nn.Module):
+
+    def __init__(self, num_classes=10):
+        super(AlexNet, self).__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 1000),
+            nn.ReLU(inplace=True),
+            nn.Linear(1000, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = torch.flatten(x, 1)
+        x = self.classifier(x)
+        return x
+
+
 class VGG16(nn.Module):
-    def __init__(self, num_classes=1000):
+    def __init__(self, num_classes=10):
         super(VGG16, self).__init__()
 
         self.features = nn.Sequential(
@@ -175,7 +217,6 @@ class VGG16(nn.Module):
 
 
 def read_data(input_path):
-
     folders = []
     images = {}
     count = 0
@@ -208,10 +249,8 @@ def read_data(input_path):
 
 def get_input_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--load', help='load the checkpoint or new training', default='1')
     parser.add_argument('--data_dir', help='path to the image folder', default='./datasets/recognition/train')
-    parser.add_argument('--save_dir', help='path to the training checkpoint', default='./save/weights_vgg16')
-    parser.add_argument('--arch', help='the architechture of the network', default='vgg')
+    parser.add_argument('--save_dir', help='path to the training checkpoint', default='./cpk')
     parser.add_argument('--lr', help='the learning rate', default=0.001)
     parser.add_argument('--hidden units', help='the hidden units', default=512)
     parser.add_argument('--epochs', help='setting the epochs', type=int, default=30)
@@ -224,7 +263,6 @@ def get_input_args_predict():
     parser.add_argument('--topk', help='print the top N class', default=3)
     parser.add_argument('--category_names', help='the index of the labels to classes', default='cat_to_name.json')
     parser.add_argument('--device', help='CPU OR CUDA', default='cuda')
-    parser.add_argument('--arch', help='the architechture of the network', default='vgg')
     parser.add_argument('--save_dir', help='path to the training checkpoint', default='./weights/weights_vgg16')
     parser.add_argument('--dirpic', help='path to the picture to test', default='./datasets/recognition/t1.png')
     return parser.parse_args()
@@ -262,7 +300,6 @@ def deep_learning(model, trainloader, testloader, epochs, print_every, criterion
             inputs, labels = inputs.to(device), labels.to(device)
             optimizer.zero_grad()
 
-            # forward and backward
             outputs = model(inputs)
             loss = criterion(outputs, labels)
             loss.backward()
@@ -271,7 +308,6 @@ def deep_learning(model, trainloader, testloader, epochs, print_every, criterion
             running_loss += loss.item()
 
             if steps % print_every == 0:
-
                 print('EPOCHS : {}/{}'.format(e + 1, epochs),
                       'Loss : {:.4f}'.format(running_loss / print_every))
                 accuracy_test(model, testloader)
@@ -289,29 +325,17 @@ def network_saving(model):
 
 
 def process_image(image):
-
     pic = Image.open(image)
-
     return process_pic(pic)
+
 
 def process_window(window):
     pic = Image.fromarray(window)
-
     return process_pic(pic)
 
 
 def process_pic(pic):
     pic = pic.resize((224, 224))
-    # if pic.size[0] < pic.size[1]:
-    #     ratio = float(256) / float(pic.size[0])
-    # else:
-    #     ratio = float(256) / float(pic.size[1])
-    #
-    # new_size = (int(pic.size[0] * ratio), int(pic.size[1] * ratio))
-    #
-    # pic.thumbnail(new_size)
-    #
-    # pic = pic.crop([pic.size[0] / 2 - 112, pic.size[1] / 2 - 112, pic.size[0] / 2 + 112, pic.size[1] / 2 + 112])
 
     mean = [0.485, 0.456, 0.406]
     std = [0.229, 0.224, 0.225]
@@ -330,38 +354,19 @@ def process_pic(pic):
     return np_image
 
 
-def myshow(image, ax=None, title=None):
-    if ax is None:
-        fig, ax = plt.subplots()
-
-    image = image.numpy().transpose((1, 2, 0))
-
-    mean = np.array([0.485, 0.456, 0.406])
-    std = np.array([0.229, 0.224, 0.225])
-    image = std * image + mean
-
-    image = np.clip(image, 0, 1)
-
-    ax.imshow(image)
-
-    return ax
-
-
 def predict(image_path, model, topk=3):
-
     if torch.cuda.is_available():
         model = model.cuda()
     img = process_image(image_path)
     return predict_pic(img, model, topk)
 
 
-def predict_pic(img, model, topk=3, need_cuda = False):
+def predict_pic(img, model, topk=3, need_cuda=False):
     img = img.unsqueeze(0)
     img = img.cuda()
 
     if need_cuda:
         model = model.to("cuda")
-
 
     result = model(img).topk(topk)
     probs = []
@@ -386,7 +391,7 @@ def train(net, trainloader, testloader):
     for param in net.parameters():
         param.require_grad = False
 
-    classifier = nn.Sequential(OrderedDict([
+    classifier_vgg = nn.Sequential(OrderedDict([
         ('fc1', nn.Linear(25088, 4096)),
         ('relu1', nn.ReLU()),
         ('fc2', nn.Linear(4096, 1000)),
@@ -394,10 +399,27 @@ def train(net, trainloader, testloader):
         ('fc3', nn.Linear(1000, 10)),
         ('output', nn.LogSoftmax(dim=1))
     ]))
-    net.classifier = classifier
+    net.classifier = classifier_vgg
 
-    # if in_arg.load == 1:
-    #     network_loading(net, in_arg.save_dir)
+    # classifier_alex = nn.Sequential(OrderedDict([
+    #     ('fc1', nn.Linear(256 * 6 * 6, 4096)),
+    #     ('relu1', nn.ReLU(inplace=True)),
+    #     ('fc2', nn.Linear(4096, 1000)),
+    #     ('relu2', nn.ReLU(inplace=True)),
+    #     ('fc3', nn.Linear(1000, 100)),
+    #     ('output', nn.LogSoftmax(dim=1))
+    # ]))
+    # net.classifier = classifier_alex
+
+    # classifier_le = nn.Sequential(OrderedDict([
+    #     ('fc1', nn.Linear(16 * 5 * 5, 120)),
+    #     ('relu1', nn.ReLU()),
+    #     ('fc2', nn.Linear(120, 84)),
+    #     ('relu2', nn.ReLU()),
+    #     ('fc3', nn.Linear(84, 100)),
+    #     ('output', nn.LogSoftmax(dim=1))
+    # ]))
+    # net.classifier = classifier_le
 
     criterion = nn.NLLLoss()
     optimizer = optim.Adam(net.classifier.parameters(), lr=0.001)
@@ -405,8 +427,6 @@ def train(net, trainloader, testloader):
     net.train()
 
     deep_learning(net, trainloader, testloader, in_arg.epochs, 40, criterion, optimizer, in_arg.device)
-
-    # accuracy_test(net, testloader)
 
     network_saving(net)
 
@@ -422,7 +442,7 @@ def test(net):
     for param in net.parameters():
         param.require_grad = False
 
-    classifier = nn.Sequential(OrderedDict([
+    classifier_vgg = nn.Sequential(OrderedDict([
         ('fc1', nn.Linear(25088, 4096)),
         ('relu1', nn.ReLU()),
         ('fc2', nn.Linear(4096, 1000)),
@@ -430,7 +450,27 @@ def test(net):
         ('fc3', nn.Linear(1000, 10)),
         ('output', nn.LogSoftmax(dim=1))
     ]))
-    net.classifier = classifier
+    net.classifier = classifier_vgg
+
+    # classifier_alex = nn.Sequential(OrderedDict([
+    #     ('fc1', nn.Linear(256 * 6 * 6, 4096)),
+    #     ('relu1', nn.ReLU(inplace=True)),
+    #     ('fc2', nn.Linear(4096, 1000)),
+    #     ('relu2', nn.ReLU(inplace=True)),
+    #     ('fc3', nn.Linear(1000, 100)),
+    #     ('output', nn.LogSoftmax(dim=1))
+    # ]))
+    # net.classifier = classifier_alex
+
+    # classifier_le = nn.Sequential(OrderedDict([
+    #     ('fc1', nn.Linear(16 * 5 * 5, 120)),
+    #     ('relu1', nn.ReLU()),
+    #     ('fc2', nn.Linear(120, 84)),
+    #     ('relu2', nn.ReLU()),
+    #     ('fc3', nn.Linear(84, 100)),
+    #     ('output', nn.LogSoftmax(dim=1))
+    # ]))
+    # net.classifier = classifier_le
 
     network_loading(net, in_arg.save_dir)
 
@@ -454,20 +494,14 @@ def test(net):
 
 if __name__ == '__main__':
 
-
-
     torch.backends.cudnn.benchmark = True
     torch.cuda.empty_cache()
-
 
     if TEST_ONLY:
         vgg16 = models.vgg16(pretrained=True)
         vgg16.cuda()
         test(vgg16)
         exit(0)
-
-
-
 
     train_path = "./datasets/recognition/train"
     test_path = "./datasets/recognition/test"
@@ -496,11 +530,24 @@ if __name__ == '__main__':
     trainloader_le = torch.utils.data.DataLoader(train_data_le, batch_size=8, shuffle=True)
     testloader_le = torch.utils.data.DataLoader(test_data_le, batch_size=8)
 
+    alexnet = models.alexnet(pretrained=True)
+    vgg16_model = models.vgg16(pretrained=True)
+
+    my_alex_model = AlexNet(num_classes=10)
     my_vgg16_model = VGG16()
     my_le_model = LeNet()
 
+    # train(vgg16_model, trainloader, testloader)
+    # test(vgg16_model)
+
     # train(my_vgg16_model, trainloader, testloader)
-    test(my_vgg16_model)
+    # test(my_vgg16_model)
 
     # train(my_le_model, trainloader_le, testloader_le)
     # test(my_le_model)
+
+    # train(alexnet, trainloader, testloader)
+    # test(alexnet)
+
+    # train(my_alex_model, trainloader, testloader)
+    # test(my_alex_model)
