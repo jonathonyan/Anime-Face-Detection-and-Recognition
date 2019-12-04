@@ -1,4 +1,5 @@
 import cv2
+import sys
 import os.path
 import glob
 
@@ -92,7 +93,7 @@ def negative_generator(input_path):
 
     for imagepath in input_path:
         size = size + 1
-        label_img, faces = detect(imagepath, cascade_file="./lbpcascade_animeface.xml")
+        label_img, faces = detect(imagepath, cascade_file = "./lbpcascade_animeface.xml")
         if label_img is None:
             continue
         neg_image, neg, neg_patches = neg_generate(imagepath, faces)
@@ -111,31 +112,6 @@ def negative_generator(input_path):
     return result
 
 
-def simple_neg_generator(input_path):
-    size = 0
-    i = 17264
+if __name__=='__main__':
 
-    print("original number of images = ", len(input_path))
-
-    for imagepath in input_path:
-        size = size + 1
-        image = cv2.imread(str(imagepath))
-        if image is None:
-            continue
-        row = image.shape[0]
-        col = image.shape[1]
-        length = int(row / 10)
-        top_left = image[0:length, 0:length]
-        top_right = image[0:length, col - length:col]
-        bottom_left = image[row - length:row, 0:length]
-        bottom_right = image[row - length:row, col - length:col]
-        cv2.imwrite("negative/corner/{}.jpg".format(i), top_left)
-        cv2.imwrite("negative/corner/{}.jpg".format(i + 1), top_right)
-        cv2.imwrite("negative/corner/{}.jpg".format(i + 2), bottom_left)
-        cv2.imwrite("negative/corner/{}.jpg".format(i + 3), bottom_right)
-        i = i + 4
-
-
-if __name__ == '__main__':
-    # neg_images = negative_generator(path)
-    simple_neg_generator(path)
+    neg_images = negative_generator(path)
