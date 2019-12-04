@@ -6,8 +6,8 @@ import pdb
 import matplotlib.pyplot as plt
 from bounding_box import *
 
-POSITIVE_DATASET_PATH="./datasets/detection/positive_all"
-NEGATIVE_DATASET_PATH="./datasets/detection/negative_all"
+POSITIVE_DATASET_PATH="./datasets/detection/positive"
+NEGATIVE_DATASET_PATH="./datasets/detection/negative"
 IMAGE_FILE_TYPE = (".jpg", ".png")
 
 
